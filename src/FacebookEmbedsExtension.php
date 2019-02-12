@@ -142,45 +142,42 @@ EOM;
     
     function facebookFeed(array $args = array())
     {
-        $curlOptions = [];
-
         $app = $this->getContainer();
-        $defaults = array(
-            'user' => 'facebook',
-            'access_token' => $app['config']->get('general/facebook_access_token'),
-            'fields' => ['id', 'name', 'link', 'about', 'cover', 'description_html', 'posts.limit(5){link, story, picture, message, created_time}', 'albums.limit(5){name, photos.limit(5)}']
-        );
-        
-        $args = array_merge($defaults, $args);
-        
-        $args['fields'] = urlencode(implode(',', $args['fields']));
-
-        $url = sprintf(
-            'https://graph.facebook.com/v2.5/%s?fields=%s&access_token=%s',
-            $args['user'],
-            $args['fields'],
-            $args['access_token']
-        );
-        
-        $cachekey = sprintf(
-            "FacebookCache%s%s",
-            $args['user'],
-            $args['fields']
-        );
-        
-        if(!$args['access_token']){
-            return 'no access token set';
-        }
-        
         $res = $app['cache']->fetch($cachekey);
         if ($res === false) {
+            $defaults = array(
+                'user' => 'facebook',
+                'access_token' => $app['config']->get('general/facebook_access_token'),
+                'fields' => ['id', 'name', 'link', 'about', 'cover', 'description_html', 'posts.limit(5){link, story, picture, message, created_time}', 'albums.limit(5){name, photos.limit(5)}']
+            );
+            
+            $args = array_merge($defaults, $args);
+            
+            $args['fields'] = urlencode(implode(',', $args['fields']));
+
+            $url = sprintf(
+                'https://graph.facebook.com/v2.5/%s?fields=%s&access_token=%s',
+                $args['user'],
+                $args['fields'],
+                $args['access_token']
+            );
+            
+            $cachekey = sprintf(
+                "FacebookCache%s%s",
+                $args['user'],
+                $args['fields']
+            );
+            
+            if(!$args['access_token']){
+                return 'no access token set';
+            }                        
             try {
                 $res = $app['guzzle.client']->get($url, array(), $curlOptions)->getBody(true);
             } catch (\Exception $e) {
                 return ['error' =>  $e->getMessage()];
             }
             $res = json_decode($res, true);
-            $app['cache']->save($cachekey, $res, 7200);
+            $app['cache']->save($cachekey, $res, 10800);
         }
         return $res;
     }
